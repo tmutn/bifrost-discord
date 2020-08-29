@@ -99,17 +99,15 @@ async def on_voice_state_update(member, before, after):
         for role in miembro.roles: 
             if role.name == "Inspector":
                 inspector.append(miembro)
-    # print("BEFORE!!!___")
-    # print(before)
-    # print("AFTER!!!___")
-    # print(after)
+
 
     if member in congressmen:
         print(f"Entro el Congressman {member.name} a {after.channel}")       
 
-        print(f"MEMBER OBJECT:{member} \n")
-        print(f"BEFORE OBJECT:{before} \n")
-        print(f"AFTER OBJECT:{after} \n")
+        #debug
+        # print(f"MEMBER OBJECT:{member} \n")
+        # print(f"BEFORE OBJECT:{before} \n")
+        # print(f"AFTER OBJECT:{after} \n")
 
         if 'Tipao' in str(member.name):
             try:
@@ -122,7 +120,7 @@ async def on_voice_state_update(member, before, after):
                     await vc.disconnect()
                     del vc
             except Exception as e: 
-                print(f"An exception has ocurred on {member.name} sound playing")
+                print(f"An exception has ocurred on {member.name} sound playing: {e}")
     
         if 'dukler' in str(member.name):
             try:
@@ -135,8 +133,8 @@ async def on_voice_state_update(member, before, after):
                     await vc.disconnect()
                     del vc
             
-            except:
-                print(f"An exception has ocurred on {member.name} sound playing")
+            except Exception as e:
+                print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
         if 'Golox' in str(member.name):
             try:
@@ -148,8 +146,8 @@ async def on_voice_state_update(member, before, after):
                     vc.stop()
                     await vc.disconnect()
                     del vc
-            except:
-                print(f"An exception has ocurred on {member.name} sound playing: {err}")                
+            except Exception as e:
+                print(f"An exception has ocurred on {member.name} sound playing: {e}: {err}")                
 
             
     if member in first_inspector:
@@ -165,8 +163,8 @@ async def on_voice_state_update(member, before, after):
                     vc.stop()
                     await vc.disconnect()
                     del vc
-            except:
-                print(f"An exception has ocurred on {member.name} sound playing")
+            except Exception as e:
+                print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
     if member in inspector:
         print(f"Entro el Inspector {member.name} a {after.channel}")
