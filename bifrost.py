@@ -6,6 +6,7 @@ import datetime
 from datetime import timedelta
 import discord
 import ffmpeg
+import glob
 import logging
 import random
 import os
@@ -23,6 +24,17 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 
 client = discord.Client()
+
+
+
+def findIntroMP3(userid):
+    soundspath = "./mp3"
+    mp3files = glob.glob(f"{soundspath}/{str(userid)}_*.mp3")
+    return mp3files
+
+    
+
+
 
 @client.event
 async def on_ready():
@@ -81,120 +93,29 @@ async def on_voice_state_update(member, before, after):
         if guild.name == GUILD:
             break
 
-    #ARREGLAR QUE NO PUEDE SER MEMBER
-    congressmen = []
-    for miembro in guild.members:
-        for role in miembro.roles: 
-            if role.name == "Congressman":
-                congressmen.append(miembro)
-
-    first_inspector = []
-    for miembro in guild.members:
-        for role in miembro.roles: 
-            if role.name == "First Inspector":
-                first_inspector.append(miembro)
-
-    inspector = []
-    for miembro in guild.members:
-        for role in miembro.roles: 
-            if role.name == "Inspector":
-                inspector.append(miembro)
+    #for miembro in guild.members:
+    #   for role in miembro.roles: 
+    #       if role.name == "Inspector":
+    #           inspector.append(miembro)
+    
+    # rolesMiembro = [member for miembro in guild.members for role in miembro.roles if role.name == "Inspector"]
 
 
-    if member in congressmen:
-        print(f"Entro el Congressman {member.name} a {after.channel}")       
 
-        #debug
-        # print(f"MEMBER OBJECT:{member} \n")
-        # print(f"BEFORE OBJECT:{before} \n")
-        # print(f"AFTER OBJECT:{after} \n")
-
-        if 'Tipao' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/congressman_tipao.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
+    if before.channel != after.channel and member != client.user:
+        print(f"Entro el {member.name} id: {member.id} a {after.channel}")
+        mp3 = findIntroMP3(member.id)
+        if mp3:
+            try:            
+                channel = after.channel
+                vc = await channel.connect()
+                vc.play(discord.FFmpegPCMAudio(mp3[0]), after=lambda e: vc.stop())
+                await asyncio.sleep(4)
+                vc.stop()
+                await vc.disconnect()
+                del vc
             except Exception as e: 
                 print(f"An exception has ocurred on {member.name} sound playing: {e}")
-    
-        if 'dukler' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/congressman_dukler.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
-            
-            except Exception as e:
-                print(f"An exception has ocurred on {member.name} sound playing: {e}")
-
-        if 'Golox' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/congressman_golox.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
-            except Exception as e:
-                print(f"An exception has ocurred on {member.name} sound playing: {e}: {err}")                
-
-
-    if member in first_inspector:
-        print(f"Entro el First Inspector {member.name} a {after.channel}")
-
-        if 'Jamaican' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/first_inspector_jamaican_tropic.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
-            except Exception as e:
-                print(f"An exception has ocurred on {member.name} sound playing: {e}")
-
-
-    if member in inspector:
-        print(f"Entro el Inspector {member.name} a {after.channel}")
-        if 'Hajime' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/inspector_hajime_chan.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
-            except Exception as e:
-                print(f"An exception has ocurred on {member.name} sound playing: {e}")
-
-        if 'Infrane' in str(member.name):
-            try:
-                if before.channel != after.channel:
-                    channel = after.channel
-                    vc = await channel.connect()
-                    vc.play(discord.FFmpegPCMAudio('./mp3/inspector_infrane.mp3'), after=lambda e: vc.stop())
-                    await asyncio.sleep(4)
-                    vc.stop()
-                    await vc.disconnect()
-                    del vc
-            except Exception as e:
-                print(f"An exception has ocurred on {member.name} sound playing: {e}")
-
 client.run(TOKEN)
 
 
