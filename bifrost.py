@@ -169,7 +169,7 @@ async def on_voice_state_update(member, before, after):
 
     if member in inspector:
         print(f"Entro el Inspector {member.name} a {after.channel}")
-        if 'hajime' in str(member.name):
+        if 'Hajime' in str(member.name):
             try:
                 if before.channel != after.channel:
                     channel = after.channel
@@ -182,7 +182,7 @@ async def on_voice_state_update(member, before, after):
             except Exception as e:
                 print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
-        if 'infrane' in str(member.name):
+        if 'Infrane' in str(member.name):
             try:
                 if before.channel != after.channel:
                     channel = after.channel
