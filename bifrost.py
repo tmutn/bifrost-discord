@@ -149,7 +149,7 @@ async def on_voice_state_update(member, before, after):
             except Exception as e:
                 print(f"An exception has ocurred on {member.name} sound playing: {e}: {err}")                
 
-            
+
     if member in first_inspector:
         print(f"Entro el First Inspector {member.name} a {after.channel}")
 
@@ -166,8 +166,35 @@ async def on_voice_state_update(member, before, after):
             except Exception as e:
                 print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
+
     if member in inspector:
         print(f"Entro el Inspector {member.name} a {after.channel}")
+
+            if 'hajime' in str(member.name):
+            try:
+                if before.channel != after.channel:
+                    channel = after.channel
+                    vc = await channel.connect()
+                    vc.play(discord.FFmpegPCMAudio('./mp3/inspector_hajime_chan.mp3'), after=lambda e: vc.stop())
+                    await asyncio.sleep(4)
+                    vc.stop()
+                    await vc.disconnect()
+                    del vc
+            except Exception as e:
+                print(f"An exception has ocurred on {member.name} sound playing: {e}")
+
+            if 'infrane' in str(member.name):
+            try:
+                if before.channel != after.channel:
+                    channel = after.channel
+                    vc = await channel.connect()
+                    vc.play(discord.FFmpegPCMAudio('./mp3/inspector_infrane.mp3'), after=lambda e: vc.stop())
+                    await asyncio.sleep(4)
+                    vc.stop()
+                    await vc.disconnect()
+                    del vc
+            except Exception as e:
+                print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
 client.run(TOKEN)
 
