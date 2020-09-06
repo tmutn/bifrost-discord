@@ -131,3 +131,7 @@ dmypy.json
 # Certificates
 *.cer
 .*.cer
+
+# Json
+*.json
+.*.json
