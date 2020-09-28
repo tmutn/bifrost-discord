@@ -36,16 +36,6 @@ if not(discord.opus.is_loaded()):
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="client_secrets.json"
 gcv_client = vision.ImageAnnotatorClient()
 
-# import io
-# path = 'Image.jpeg'
-# print(path)
-# with io.open(path, 'rb') as image_file:
-#         content = image_file.read()
-# image = vision.types.Image(content=content)
-# response = gcv_client.image_properties(image=image)
-# props = response.image_properties_annotation
-# print(response)
-
 #/-----Functions-----\
 
 #clear
@@ -139,15 +129,15 @@ async def on_message(message):
                 })
         for annotation in response.label_annotations:
             labels.append(annotation.description)
-            print(f"Etiquetas de la imagen enviada por {message.author}: {labels}")
+        print(f"Labels of img sent by {message.author}: {labels}")
     if 'Anime' in labels:
-        print(f"Imagen otaku detectada enviada por {message.author}, reaccionando con ♍")
+        print(f"'Anime' label found {message.author}, reacting -> ♍")
         await message.add_reaction('♍')
 
-    if "Hajime" in str(message.author):
-        reason = "Juan escribió algo"
-        if disgrace(1,5, reason):
-            await message.add_reaction('♍')
+    # if "Hajime" in str(message.author):
+    #     reason = "Juan escribió algo"
+    #     if disgrace(1,5, reason):
+    #         await message.add_reaction('♍')
 
 #LEGAW
 clear()
