@@ -62,7 +62,6 @@ def disgrace(target, dicesize, reason=None):
 
 
 #/-----Events-----\
-
 @client.event
 async def on_ready():
     for guild in client.guilds:
@@ -134,10 +133,10 @@ async def on_message(message):
         print(f"'Anime' label found {message.author}, reacting -> ♍")
         await message.add_reaction('♍')
 
-    # if "Hajime" in str(message.author):
-    #     reason = "Juan escribió algo"
-    #     if disgrace(1,5, reason):
-    #         await message.add_reaction('♍')
+    if "Hajime" in str(message.author):
+        reason = "Juan escribió algo"
+        if disgrace(1,15, reason):
+            await message.add_reaction('♍')
 
 #LEGAW
 clear()
