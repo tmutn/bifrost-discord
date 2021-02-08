@@ -9,7 +9,6 @@ import ffmpeg
 import glob
 import inspect
 import json
-import random
 import os
 import sqlite3
 from datetime import timedelta
@@ -17,19 +16,19 @@ from discord.ext import commands
 from discord.ext.commands import Bot
 from dotenv import load_dotenv
 from sqlite3 import Error
-from google.cloud import vision
 from os import system, name
 
+# bifrost modules
+from bfrannounce import *
+from bfrmessages import *
+from bfrauxfunc import *
+from bfrdiscauxfunc import *
 
 #/-----INITIALIZATION-----\
 #.env
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
-ANNOUNCERMP3PATH = os.getenv('ANNOUNCER_MP3_PATH')
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-ID_ROLES_TO_BE_ANNOUNCED = list(map(int, os.getenv('ID_ROLES_TO_BE_ANNOUNCED').split(",")))
 DEBUG = os.getenv('DEBUG')
 
 #HARDCODED CANTIDAD DE VOTOS POR PERSONA
@@ -40,48 +39,15 @@ intents = discord.Intents.default()
 intents.members = True  # Subscribe to the privileged members intent.
 discordBot = commands.Bot(command_prefix='>', intents=intents)
 
-#load opus lib
+#load opus lib for audio playing
 a = ctypes.util.find_library('opus')
 b = discord.opus.load_opus(a)
 c = discord.opus.is_loaded()
 if not(discord.opus.is_loaded()):
 	print(f'Discord Opus error')
 
-#google computervision
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"]="client_secrets.json"
-gcv_client = vision.ImageAnnotatorClient()
 
 #/-----FUNCTIONS-----\
-#clear
-def clear():   
-	if name == 'nt': 
-		_ = system('cls') 
-	else: 
-		_ = system('clear')
-
-#getArity
-def getArity(func):
-	return inspect.getfullargspec(func)
-
-#findIntroMP3
-def findIntroMP3(userid):
-	return glob.glob(f"{ANNOUNCERMP3PATH}/{str(userid)}_*.mp3")
-
-#findIntroMP3PollyEdition
-def findIntroMP3Polly(text):
-	return glob.glob(f"{ANNOUNCERMP3PATH}/{text}.mp3")
-
-#disgrace
-def disgrace(target, dicesize, reason=None):
-	number = random.randrange(1, dicesize)
-	if reason == None:
-		reason = "no especificada"
-	print(f"Rolling for disgrace: rolled:{number} target: {target} dicesize:{dicesize} | Razón: {reason}")
-	if number == target:
-		return True
-	else:
-		return False
-
 #executeSqlite
 def executeSqlite(script):
 	try:
@@ -93,91 +59,6 @@ def executeSqlite(script):
 		print(err)
 	finally:
 		condb.close()
-
-#FUNCIONES BIFROST-POLLY
-#Sitentizar texto
-def pollySynthesize(text, voiceId='Takumi', engine='standard', textType ='text', forceName = False):
-	filename = text.replace(" ", "_")
-	polly_client = boto3.Session(
-					aws_access_key_id=AWS_ACCESS_KEY_ID,                     
-		aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-		region_name='us-east-1').client('polly')
-
-
-	if voiceId == 'Matthew':
-		engine = 'neural'
-
-	response = polly_client.synthesize_speech(Engine = engine,
-					VoiceId=voiceId,
-					OutputFormat='mp3', 
-					Text = text,
-					TextType = textType)
-
-
-	#Chequear si esta sintetización ya existe
-	filepath = f'{ANNOUNCERMP3PATH}/{filename}-voiceID={voiceId}.mp3'
-	if forceName:
-		filepath = f'{ANNOUNCERMP3PATH}/{forceName}.mp3'
-
-	if os.path.isfile(f'{ANNOUNCERMP3PATH}/{filename}.mp3') and not forceName:  
-		return filepath
-		
-	elif os.path.isfile(f'{ANNOUNCERMP3PATH}/{filename}.mp3') is not True:  
-		file = open(filepath, 'wb')
-		print(f"Generando archivo : {file}")
-		file.write(response['AudioStream'].read())
-		file.close()
-
-		return filepath
-	return None
-
-def getAnnounceableRoles():
-	announceable_roles = []
-	for guild in discordBot.guilds:
-		for role in guild.roles:
-			if role.id in ID_ROLES_TO_BE_ANNOUNCED:
-				announceable_roles.append(role)
-	return announceable_roles
-
-def highestAnnounceableRoleOfUser(member):
-	roles_of_member = member.roles
-	announceable_roles = getAnnounceableRoles()
-	roles_dict = {}
-	for role in roles_of_member:
-		if role in announceable_roles:
-			roles_dict[role] = role.position
-	if roles_dict:
-		highest_hierachy_role_of_user = max(roles_dict, key=roles_dict.get)    
-		return highest_hierachy_role_of_user
-	else:
-		return None
-
-def createAnnouncementString(member):
-	role = highestAnnounceableRoleOfUser(member)
-	member_name = member.name
-	if role:
-		return f"{role} {member_name} has joined"
-	else:
-		return None
-
-def isAdministrator(member):
-	if member.guild_permissions.administrator:
-		return True
-	else:
-		return False
-
-async def disconnectVoiceObject(vc):
-	try:            
-		await vc.disconnect()
-	except Exception as e: 
-		print(f"An exception has ocurred on elections end sound playing: {e}")
-
-async def dmEveryone(ctx, message):
-	for member in ctx.guild.members:
-		if member != discordBot.user:
-			await member.send(message)
-		
-
 
 
 #FUNCIONES AUXILIARES BIFROST-DEMOCRATIA
@@ -197,7 +78,7 @@ def	getPingedMember(ctx, pingedMember):
 			return member
 	return None
 
-#Obtener el objeto member al recibir como parámetro un @alguien y el contexto
+#Obtener el objeto role al recibir como parámetro un @alguien y el contexto
 def	getPingedRole(ctx, pingedRole):
 	charactersToRemove = "<>@!&"
 	idPingedRole = pingedRole
@@ -320,7 +201,7 @@ En el cuarto oscuro podrán encontrar información de como votar y las listas di
 
 
 **3 - FASE DE ESCRUTINIO**
-Cuando se active el escritinio, Bifrost hará una ceremonia en un canal de voz designado donde se anunciará a los ganadores
+Cuando se active el escrutinio, Bifrost hará una ceremonia en un canal de voz designado donde se anunciará a los ganadores
 """
 	return message
 
@@ -658,7 +539,7 @@ def countRolePostulationsInList(electable_congressman_id, role_id):
 	try:
 		condb = sqlite3.connect('bifrost.db')
 		cursorObj = condb.cursor()
-		cursorObj.execute(f"SELECT count({role_id}) from confirmed_candidate as cc WHERE cc.congressman_id = {electable_congressman_id}")
+		cursorObj.execute(f"SELECT count({role_id}) from confirmed_candidate as cc WHERE cc.congressman_id = {electable_congressman_id} and cc.candidate_postulated_role_id = {role_id}")
 		condb.commit()
 		rows = cursorObj.fetchall()
 	except Error as err:
@@ -1120,34 +1001,17 @@ async def on_raw_reaction_add(payload):
 						await channel.send(f"{myid} guachin saca ya el me divierte https://www.youtube.com/watch?v=frZsl8nQPOo")
 						await asyncio.sleep(600)
 
-# @discordBot.event
-# async def on_voice_state_update(member, before, after):
-#     if before.channel != after.channel and member != discordBot.user:
-#         if after.channel:
-#             print(f"User {member.name}[{member.id}] voice connected {after.channel}")
-#         mp3 = findIntroMP3(member.id)
-#         if mp3:
-#             try:            
-#                 channel = after.channel
-#                 vc = await channel.connect()
-#                 vc.play(discord.FFmpegPCMAudio(mp3[0]), after=lambda e: vc.stop())
-#                 await asyncio.sleep(4)
-#                 vc.stop()
-#                 await vc.disconnect()
-#                 del vc
-#             except Exception as e: 
-#                 print(f"An exception has ocurred on {member.name} sound playing: {e}")
 
 @discordBot.event
 async def on_voice_state_update(member, before, after):
 	if before.channel != after.channel and member != discordBot.user:
-		announcement_string = createAnnouncementString(member)
+		announcement_string = create_announcement_string(member, discordBot.guilds)
 		if announcement_string:
-			filenameWithPath = pollySynthesize(announcement_string)
+			filenameWithPath = polly_synthesize(announcement_string)
 			if after.channel:
 				print(f"User {member.name}[{member.id}] voice connected {after.channel}")
 				if filenameWithPath:
-					try:            
+					try:
 						channel = after.channel
 						vc = await channel.connect()
 						vc.play(discord.FFmpegPCMAudio(filenameWithPath), after=lambda e: vc.stop())
@@ -1166,35 +1030,14 @@ async def on_member_join(member):
 		f'Bienvenido a ToposCrew, {member.name}.'
 	)
 
-#React to images using Google Computervision
+
+#Per user reactions MAPEAR CONTINUE
 @discordBot.event
 async def on_message(message):
-	labels = []
-	if message.author == discordBot.user:
-		return
-	if message.attachments:        
-		for attachment in message.attachments:
-			if attachment.url.endswith('jpg') or attachment.url.endswith('jpeg') or attachment.url.endswith('png'):
-				response = gcv_client.annotate_image({
-				'image': {'source': {'image_uri': f'{str(attachment.url)}'}},
-				'features': [{'type': vision.enums.Feature.Type.LABEL_DETECTION}],
-				})
-		for annotation in response.label_annotations:
-			labels.append(annotation.description)
-		print(f"Labels of img sent by {message.author}: {labels}")
-	if 'Anime' in labels:
-		print(f"'Anime' label found {message.author}, reacting -> ♍")
-		await message.add_reaction('♍')
+	await react_to_message(message, discordBot)
+	await react_to_embedded_img(message, discordBot)
 	await discordBot.process_commands(message)
 
-#Per user reactions
-@discordBot.event
-async def on_message(message):
-	if "Hajime" in str(message.author):
-		reason = "Juan escribió algo"
-		if disgrace(1,15, reason):
-			await message.add_reaction('♍')
-	await discordBot.process_commands(message)
 
 @discordBot.command(name="elecciones", hidden=True)
 async def startElections(ctx, arrobaCongressman, arrobaFirstInspector, arrobaInspector, arrobaTopo):
@@ -1243,7 +1086,9 @@ async def startElections(ctx, arrobaCongressman, arrobaFirstInspector, arrobaIns
 			finally:
 				condb.close()
 
-		dmEveryone(ctx,electionInformation(ctx))
+		message = electionInformation(ctx)
+
+		await dmEveryone(ctx,message, discordBot)
 	else:
 		print(f"{ctx.message.author} is NOT ADMINISTRATOR. Warning issued.")
 
@@ -1575,7 +1420,7 @@ async def addListImage(ctx, listColor):
 @discordBot.command(name="ping", brief='TEST FUNCTION')
 async def testFunction(ctx):
 	pass
-
+	# await dmEveryone(ctx, "Mi nombre es Bifrost y espero que tengas un buen día.", discordBot)
 
 
 
@@ -1638,11 +1483,6 @@ async def on_raw_reaction_add(payload):
 			await currentChannel.send(f"Votaste al candidato a Congressman {payload.member.guild.get_member(votedCongressmanId)}\n```Votos restantes = {VOTES_PER_ELECTOR_ROLE - votosEmitidos}```")
 
 
-async def disconnectVoice(vc):
-	await vc.stop()
-
-
-
 @discordBot.command(name="finalizarElecciones")
 async def endElections(ctx):
 	if not isAdministrator(ctx.message.author):
@@ -1666,8 +1506,8 @@ async def endElections(ctx):
 	<emphasis>Bifurosuto</emphasis> desu  has joined <break time="1s"/> Elections have finished <break time="1s"/> Switching voice to spanish mode
 	</speak>
 	'''
-	filenameWithPath = pollySynthesize(msg, voiceId="Takumi", engine='standard', textType='ssml', forceName='electionsEnd')
-	voiceCoso = await playAudio(filenameWithPath, channel, False)
+	filenameWithPath = polly_synthesize(msg, voiceId="Takumi", engine='standard', textType='ssml', forceName='electionsEnd')
+	voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False)
 
 # ELIMINAR TODOS LOS CARGOS ANTERIORES
 	msg = '''
@@ -1678,8 +1518,8 @@ async def endElections(ctx):
 	</speak>
 	'''
 
-	filenameWithPath = pollySynthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
-	voiceCoso = await playAudio(filenameWithPath, channel, False, voiceCoso)
+	filenameWithPath = polly_synthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
+	voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False, voiceCoso)
 
 	while voiceCoso.is_playing():
 		await asyncio.sleep(.1)
@@ -1733,8 +1573,8 @@ async def endElections(ctx):
 		Con {electable['votes']} votos, la lista <break time="0.1s"/> {electable['listNumber']} <break time="0.1s"/> {electable['listName']} <break time="0.1s"/>  de el ahora Congressman, {ctx.guild.get_member(electable['congressmanId']).name} <break time="0.4s"/> ha sido elécta.<break time="1s"/> 
 		</speak>'''
 
-		filenameWithPath = pollySynthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
-		voiceCoso = await playAudio(filenameWithPath, channel, False, voiceCoso)
+		filenameWithPath = polly_synthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
+		voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False, voiceCoso)
 
 		while voiceCoso.is_playing():
 			await asyncio.sleep(.1)
@@ -1749,8 +1589,8 @@ async def endElections(ctx):
 		if gotFirst == 0 and electable['firstInspectorId']:
 			msg = f'<speak>Esta lista ha propuesto un First Inspector, y al ser la que más votos ha obtenido, démosle la bienvenida al First Inspector <break time="0.1s"/> {ctx.guild.get_member(electable["firstInspectorId"]).name} <break time="0.5s"/></speak>'
 			memberGetsFirstInspector = ctx.guild.get_member(electable['firstInspectorId'])
-			filenameWithPath = pollySynthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
-			voiceCoso = await playAudio(filenameWithPath, channel, False, voiceCoso)
+			filenameWithPath = polly_synthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
+			voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False, voiceCoso)
 			while voiceCoso.is_playing():
 				await asyncio.sleep(.1)
 			await memberGetsFirstInspector.add_roles(firstInspectorRole)
@@ -1758,8 +1598,8 @@ async def endElections(ctx):
 
 		msg = f'<speak>También, démosle la bienvenida al inspector <break time="0.1s"/> {nameOfInspectorOne} <break time="0.1s"/> y al Inspector <break time="0.1s"/> {nameOfInspectorTwo}, ambos pertenecientes a esta lista <break time="0.1s"/></speak>'
 
-		filenameWithPath = pollySynthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
-		voiceCoso = await playAudio(filenameWithPath, channel, False, voiceCoso)
+		filenameWithPath = polly_synthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
+		voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False, voiceCoso)
 
 		while voiceCoso.is_playing():
 			await asyncio.sleep(.1)
@@ -1770,25 +1610,17 @@ async def endElections(ctx):
 		await memberGetsInspector.add_roles(inspectorRole)
 		
 	msg = "<speak>Esta ceremonia ha terminado. Esta se repetirán en un año aproximadamente. Espero que hayan elegido sabiamente, o prepárense para sufrir las consecuencias.</speak>"
-	filenameWithPath = pollySynthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
-	voiceCoso = await playAudio(filenameWithPath, channel, False, voiceCoso)
+	filenameWithPath = polly_synthesize(msg, voiceId="Miguel", engine='standard', textType='ssml', forceName='electionsEnd')
+	voiceCoso = await play_audio_in_channel(filenameWithPath, channel, False, voiceCoso)
 
-	await disconnectVoiceObject(voiceCoso)
-
-async def playAudio(filenameWithPath, channel, autoStop = True, vc = None):
-	try:            
-		if not vc:
-			vc = await channel.connect()
-		vc.play(discord.FFmpegPCMAudio(filenameWithPath), after=lambda e: vc.stop())
-		while vc.is_playing():
-			await asyncio.sleep(.1)
-		if autoStop:
-			await vc.disconnect()
-		return vc
-	except Exception as e: 
-		print(f"An exception has ocurred on elections end sound playing: {e}")
+	await disconnect_voice_object(voiceCoso)
 
 
-#LETSGO
+#Run bot
+def clear():   
+	if name == 'nt': 
+		_ = system('cls') 
+	else: 
+		_ = system('clear')
 clear()
 discordBot.run(TOKEN)
