@@ -1,10 +1,10 @@
 # Bifrost-Discord
 This Discord bot has multiple modules:
 
-###Bifrost-Announce
+### Bifrost-Announce
 Uses the Amazon Polly API to generate greeting messages for the roles you want in a Discord server. It has a cost-saving functionality that only generates the .mp3 files once.
 
-###Bifrost-Elections
+### Bifrost-Elections
 Creates a "democratic" system that allows certain roles from the server to vote for their representants.
 
 Elections can be invoked using the >elections command along with four parameters that reference four server roles.
