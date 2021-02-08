@@ -34,7 +34,7 @@ The name of the roles could be anything, the arguments are positional so only th
 /___________________________\\	
 ```
 
-The election is compromised of two stages
+The election is compromised of three stages
 - Postulations
 
 After an administrator member uses the >elections command, elections start and everyone who has the @Verified Member role gets to postulate himself as a candidate for the @Congressman role. Don't worry, you get to vote even if you postulate.
@@ -47,7 +47,16 @@ You must meet all the requirements in order to get to the next phase of the elct
 
 Also you should add a banner to your party, and the colour you like the most.
 
+
 - Voting
+
+After an administrator manually invokes this stage, all the channels of parties that didn't met the requirements will be removed. Only the ones who remain will be electable.
+
+All members with the @Verified Member role will be able to vote in a secret channel, by reacting with thumbs up to the party they want to vote.
+
+- Vote counting and results
+
+After an administrator manually invokes this stage, Bifrost will join the voice channel that the administrator is in and will announce the winners (and remove the previous Congressmen, First Inspector and Inspector, if any).
 
 
 ### Dependencies
