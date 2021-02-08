@@ -20,11 +20,7 @@ This means that @Verified Member is the role that gets to vote, and after the vo
 The name of the roles could be anything, the arguments are positional so only the order matters, in my case, this would be the hierarchy of my server:
 
 ```bash
-             / \\
-            /   \\
-           /     \\
-          /       \\
-         /         \\
+         ____________
         /           \\
        / Congressman \\     ►3
       /               \\
