@@ -26,7 +26,7 @@ This means that @voter is the role that gets to vote, and after the voting concl
       /               \\
      / first_pawn_role \\   ►1
     /                   \\
-   /      pawns_role     \\ ►6
+   /      pawn_role      \\ ►6
   /                       \\
  /          voter          \\
 /___________________________\\	
