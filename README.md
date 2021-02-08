@@ -12,7 +12,10 @@ Elections can be invoked using the >elections command along with four parameters
 For example:
 >\>elections @master_role @first_pawn_role @pawn @voter
 
-This means that @voter is the role that gets to vote, and after the voting concludes, the server will end up with three @master_roles, two @pawn roles per @master and one @first_pawn. The first pawn is chosen based on who's the @master_role with most votes.
+This means that @voter is the role that gets to vote, and after the voting concludes, the server will end up with...
+- Three @master_roles
+- Two @pawn roles per @master 
+- One @first_pawn. The first pawn is chosen based on who's the @master_role that got the most votes.
 
 
 ```bash
