@@ -5,7 +5,7 @@ This Discord bot has multiple modules:
 Uses the Amazon Polly API to generate greeting messages for the roles you want in a Discord server. It has a cost-saving functionality that only generates the .mp3 files once.
 
 ### Bifrost-Elections
-Creates a "democratic" system that allows certain roles from the server to vote for their representants.
+This module creates a "democratic" server-wide election that allows certain roles from the server to vote for their representants.
 
 Elections can be invoked using the >elections command along with four parameters that reference four server roles.
 
