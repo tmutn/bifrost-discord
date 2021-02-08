@@ -138,3 +138,6 @@ dmypy.json
 
 # .db files - avoids overwriting empty github databases
 *.db
+
+# .mp3 files - ignore generated mp3 files
+*.mp3
