@@ -7,37 +7,39 @@ Uses the Amazon Polly API to generate greeting messages for the roles you want i
 ### Bifrost-Elections
 This module creates a "democratic" server-wide election that allows certain roles from the server to vote for their representants.
 
-Elections can be invoked using the >elections command along with four parameters that reference four server roles.
+Elections can be invoked using the >elections command along with four parameters that reference four server roles using the Discord role mention function.
 
-For example:
->\>elections @master_role @first_pawn_role @pawn @voter
+For example, let's say that in my server I have four existing roles, Congressman, First Inspector, Inspector and Verified Member
+>\>elections @Congressman @First Inspector @Inspector @Verified Member
 
-This means that @voter is the role that gets to vote, and after the voting concludes, the server will end up with...
-- Three @master_roles
-- Two @pawn roles per @master 
-- One @first_pawn. The first pawn is chosen based on who's the @master_role that got the most votes.
+This means that @Verified Member is the role that gets to vote, and after the voting concludes, the server will end up with...
+- Three @Congressman
+- Two @Inspector per @master 
+- One @First Inspector. The First Inspector is chosen based on who's the @congressman that got the most votes.
 
+The name of the roles could be anything, the arguments are positional so only the order matters, in my case, this would be the hierarchy of my server:
 
 ```bash
              / \\
             /   \\
            /     \\
           /       \\
-         / bifrost \\
+         /         \\
         /           \\
-       / master_role \\     ►3
+       / Congressman \\     ►3
       /               \\
-     / first_pawn_role \\   ►1
+     / First Inspector \\   ►1
     /                   \\
-   /      pawn_role      \\ ►6
+   /      Inspector      \\ ►6
   /                       \\
- /          voter          \\
+ /     Verified Member     \\
 /___________________________\\	
 ```
+The election is compromised of two stages
+- Election start
+After an administrator member uses the >elections command, elections start and everyone who has the @voter role gets to postulate himself as a candidate for the @master_role
 
-
-
-
+Postulating for the @master_role grants you a text channel. In this channel you must propose two members to fulfill the @pawn_role
 
 
 ### Dependencies
