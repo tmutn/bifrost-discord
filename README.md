@@ -12,12 +12,12 @@ Elections can be invoked using the >elections command along with four positional
 For example, let's say that in my server I have four existing roles, Congressman, First Inspector, Inspector and Verified Member
 >\>elections @Congressman @First Inspector @Inspector @Verified Member
 
-The name of the roles could be anything, the arguments are positional so only the order matters, in my case, this would be the hierarchy of my server:
-
 This means that @Verified Member is the role that gets to vote, and after the voting concludes, the server will end up with...
 - Three @Congressman
 - Two @Inspector per @Congressman 
 - One @First Inspector. The First Inspector is chosen based on who's the @congressman that got the most votes.
+
+The name of the roles could be anything, the arguments are positional so only the order matters, in my case, this would be the hierarchy of my server:
 
 ```bash
              / \\
