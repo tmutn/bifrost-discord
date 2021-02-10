@@ -47,52 +47,23 @@ if not(discord.opus.is_loaded()):
 	print(f'Discord Opus error')
 
 
-#/-----FUNCTIONS-----\
-#executeSqlite
-def executeSqlite(script):
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
-		cursorObj.execute(script)
-		condb.commit()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
 
 
-#FUNCIONES AUXILIARES BIFROST-DEMOCRATIA
-#Obtener el objeto member al recibir como parámetro un @alguien y el contexto
-def	getPingedMember(ctx, pingedMember):
-	charactersToRemove = "<>@!&"
-	idPingedMember = pingedMember
-	for character in charactersToRemove:
-		idPingedMember = idPingedMember.replace(character, '')
-	try:
-		idPingedMember = int(idPingedMember)
-	except:
-		print("String is not transferible to int")
-		return None	
-	for member in ctx.guild.members:
-		if member.id ==  idPingedMember:
-			return member
-	return None
-
-#Obtener el objeto role al recibir como parámetro un @alguien y el contexto
-def	getPingedRole(ctx, pingedRole):
-	charactersToRemove = "<>@!&"
-	idPingedRole = pingedRole
-	for character in charactersToRemove:
-		idPingedRole = idPingedRole.replace(character, '')
-	try:
-		idPingedRole = int(idPingedRole)
-	except:
-		print("String is not transferible to int")
-		return None	
-	for role in ctx.guild.roles:
-		if role.id ==  idPingedRole:
-			return role
-	return None
+#Commands
+#EXEMPLARY
+@commands.guild_only()
+@commands.has_permissions(administrator=True)
+@discordBot.command(name="announce", hidden=True)
+async def announce(ctx, pinged_role_to_announce):		
+		role_to_announce = getPingedRole(ctx, pinged_role_to_announce)
+		if not role_to_announce:
+			await ctx.send(f"Error: '{pinged_role_to_announce}' es un rol inválido")
+			return
+		query_result = executeSqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
+		if "UNIQUE constraint failed" in str(query_result):
+			await ctx.send(f"Error: {role_to_announce} ya estaba en la lista de roles anunciados")
+			return
+		await ctx.send(f"{role_to_announce} ha sido agregado a la lista de roles anunciados")
 
 async def sendDM(member, content):
 	await member.send(content)
@@ -1031,12 +1002,12 @@ async def on_member_join(member):
 	)
 
 
-#Per user reactions MAPEAR CONTINUE
+# Per user reactions MAPEAR CONTINUE
 @discordBot.event
 async def on_message(message):
 	await react_to_message(message, discordBot)
 	await react_to_embedded_img(message, discordBot)
-	await discordBot.process_commands(message)
+	# await discordBot.process_commands(message)
 
 
 @discordBot.command(name="elecciones", hidden=True)

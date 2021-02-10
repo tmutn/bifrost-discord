@@ -1,3 +1,5 @@
+-- Bifrost Election Database DDL
+
 BEGIN TRANSACTION;
 DROP TABLE IF EXISTS "voter_votes_electable";
 CREATE TABLE IF NOT EXISTS "voter_votes_electable" (
