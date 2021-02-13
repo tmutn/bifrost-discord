@@ -59,7 +59,7 @@ async def announce(ctx, pinged_role_to_announce):
 	if not role_to_announce:
 		await ctx.send(f"Error: '{pinged_role_to_announce}' es un rol inválido")
 		return
-	query_result = executeSqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
+	query_result = execute_sqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
 	if "UNIQUE constraint failed" in str(query_result):
 		await ctx.send(f"Error: {role_to_announce} ya estaba en la lista de roles anunciados")
 		return
@@ -74,7 +74,7 @@ async def unannounce(ctx, pinged_role_to_unannounce):
 	if not role_to_unannounce:
 		await ctx.send(f"Error: '{pinged_role_to_unannounce}' es un rol inválido")
 		return
-	if not executeSqlite(f"DELETE FROM announceable_role WHERE role_id = {role_to_unannounce.id}"):
+	if not execute_sqlite(f"DELETE FROM announceable_role WHERE role_id = {role_to_unannounce.id}"):
 		await ctx.send(f"Error: {role_to_unannounce} no se puede eliminar por que no está en la lista")
 		return
 	await ctx.send(f"{role_to_unannounce} ha sido eliminado de la lista de roles anunciados")
@@ -840,7 +840,7 @@ async def endPostulations(ctx):
 		else:
 			scripts = [f"DELETE from pending_postulation_offer WHERE postulator_member_id = {lista['member_id']}",f"DELETE from confirmed_candidate WHERE congressman_id = {lista['member_id']}",f"DELETE from electable_congressman WHERE member_id = {lista['member_id']}"]
 			for script in scripts:
-				executeSqlite(script)
+				execute_sqlite(script)
 				channelToDelete = discordBot.get_channel(lista['channel_id'])
 			await channelToDelete.delete()
 

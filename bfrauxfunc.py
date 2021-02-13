@@ -3,7 +3,7 @@ import sqlite3
 from sqlite3 import Error
 
 #executeSqlite
-def executeSqlite(script):
+def execute_sqlite(script):
 	rows = []
 	result = []
 	data = {}
