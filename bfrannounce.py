@@ -2,15 +2,27 @@ import os
 import boto3
 from dotenv import load_dotenv
 
+from bfrauxfunc import *
 
 load_dotenv()
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 ANNOUNCERMP3PATH = os.getenv('ANNOUNCER_MP3_PATH')
-ID_ROLES_TO_BE_ANNOUNCED = list(map(int, os.getenv('ID_ROLES_TO_BE_ANNOUNCED').split(",")))
+ID_ROLES_TO_BE_ANNOUNCED = []
+
+# ID_ROLES_TO_BE_ANNOUNCED = list(map(int, os.getenv('ID_ROLES_TO_BE_ANNOUNCED').split(",")))
+def initialize_roles_to_announce():
+	global ID_ROLES_TO_BE_ANNOUNCED
+	query_roles_to_announce = executeSqlite(f"SELECT * from announceable_role")
+	announceable_roles = []
+	if query_roles_to_announce:
+		for role in query_roles_to_announce:
+			announceable_roles.append(role['role_id'])
+	ID_ROLES_TO_BE_ANNOUNCED = announceable_roles
 
 #Text synthetization
 def polly_synthesize(text, voiceId='Takumi', engine='standard', textType ='text', forceName = False):
+	
 	filename = text.replace(" ", "_")
 	polly_client = boto3.Session(
 					aws_access_key_id=AWS_ACCESS_KEY_ID,                     
@@ -56,27 +68,24 @@ def create_announcement_string(member, guild):
 	else:
 		return None
 
-#Get the highest ranking role that the user has
+#Get the highest announceable in this server role that the member has
 def highest_announceable_role_of_user(member, guild):
-	roles_of_member = member.roles
 	announceable_roles = get_announceable_roles(guild)
-	roles_dict = {}
-	for role in roles_of_member:
+	roles_of_member_by_hierarchy = [role.id for role in member.roles][::-1]
+	for role in roles_of_member_by_hierarchy:
 		if role in announceable_roles:
-			roles_dict[role] = role.position
-	if roles_dict:
-		highest_hierachy_role_of_user = max(roles_dict, key=roles_dict.get)    
-		return highest_hierachy_role_of_user
-	else:
-		return None
+			return member.guild.get_role(role)
+	return None
 
-#Obtain role ids that must be announced
+
+#Obtain all the roles that belong to this guild and should be announced
 def get_announceable_roles(discordGuild):
+	print(ID_ROLES_TO_BE_ANNOUNCED)
 	announceable_roles = []
 	for guild in discordGuild:
 		for role in guild.roles:
 			if role.id in ID_ROLES_TO_BE_ANNOUNCED:
-				announceable_roles.append(role)
+				announceable_roles.append(role.id)
 	return announceable_roles
 
 #Early disconnect a voice object

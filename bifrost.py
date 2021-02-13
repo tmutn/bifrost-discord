@@ -54,20 +54,36 @@ if not(discord.opus.is_loaded()):
 @commands.guild_only()
 @commands.has_permissions(administrator=True)
 @discordBot.command(name="announce", hidden=True)
-async def announce(ctx, pinged_role_to_announce):		
-		role_to_announce = getPingedRole(ctx, pinged_role_to_announce)
-		if not role_to_announce:
-			await ctx.send(f"Error: '{pinged_role_to_announce}' es un rol inválido")
-			return
-		query_result = executeSqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
-		if "UNIQUE constraint failed" in str(query_result):
-			await ctx.send(f"Error: {role_to_announce} ya estaba en la lista de roles anunciados")
-			return
-		await ctx.send(f"{role_to_announce} ha sido agregado a la lista de roles anunciados")
+async def announce(ctx, pinged_role_to_announce):
+	role_to_announce = getPingedRole(ctx, pinged_role_to_announce)
+	if not role_to_announce:
+		await ctx.send(f"Error: '{pinged_role_to_announce}' es un rol inválido")
+		return
+	query_result = executeSqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
+	if "UNIQUE constraint failed" in str(query_result):
+		await ctx.send(f"Error: {role_to_announce} ya estaba en la lista de roles anunciados")
+		return
+	await ctx.send(f"{role_to_announce} ha sido agregado a la lista de roles anunciados")
+	initialize_roles_to_announce()
+
+@commands.guild_only()
+@commands.has_permissions(administrator=True)
+@discordBot.command(name="unannounce", hidden=True)
+async def unannounce(ctx, pinged_role_to_unannounce):
+	role_to_unannounce = getPingedRole(ctx, pinged_role_to_unannounce)
+	if not role_to_unannounce:
+		await ctx.send(f"Error: '{pinged_role_to_unannounce}' es un rol inválido")
+		return
+	if not executeSqlite(f"DELETE FROM announceable_role WHERE role_id = {role_to_unannounce.id}"):
+		await ctx.send(f"Error: {role_to_unannounce} no se puede eliminar por que no está en la lista")
+		return
+	await ctx.send(f"{role_to_unannounce} ha sido eliminado de la lista de roles anunciados")
+	initialize_roles_to_announce()
+
+
 
 async def sendDM(member, content):
 	await member.send(content)
-
 
 #HARDCODED O LAS ELECCIONES NO SE HACEN NUNCA
 async def displayLists(channel):
@@ -1003,10 +1019,10 @@ async def on_member_join(member):
 
 
 # Per user reactions MAPEAR CONTINUE
-@discordBot.event
-async def on_message(message):
-	await react_to_message(message, discordBot)
-	await react_to_embedded_img(message, discordBot)
+# @discordBot.event
+# async def on_message(message):
+	# await react_to_message(message, discordBot)
+	# await react_to_embedded_img(message, discordBot)
 	# await discordBot.process_commands(message)
 
 
@@ -1366,7 +1382,7 @@ async def addListImage(ctx, imageURL):
 		condb.close()
 
 @discordBot.command(name="agregarColorLista", brief='Agregar color lista. Debe ser hexadecimal, sin el #, ejemplo F2AC11')
-async def addListImage(ctx, listColor):
+async def addListColor(ctx, listColor):
 	if not isMemberOwnerOfElectionChannel(ctx):
 		await sendDM(ctx.author, "Este comando solo puede ser utilizado en tu canal de campaña")
 		return 
@@ -1390,8 +1406,7 @@ async def addListImage(ctx, listColor):
 
 @discordBot.command(name="ping", brief='TEST FUNCTION')
 async def testFunction(ctx):
-	pass
-	# await dmEveryone(ctx, "Mi nombre es Bifrost y espero que tengas un buen día.", discordBot)
+	print(ctx.guild.roles)
 
 
 
@@ -1594,4 +1609,5 @@ def clear():
 	else: 
 		_ = system('clear')
 clear()
+initialize_roles_to_announce()
 discordBot.run(TOKEN)
