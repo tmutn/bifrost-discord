@@ -10,6 +10,7 @@ import glob
 import inspect
 import json
 import os
+import sys
 import sqlite3
 from datetime import timedelta
 from discord.ext import commands
@@ -23,6 +24,7 @@ from bfrannounce import *
 from bfrmessages import *
 from bfrauxfunc import *
 from bfrdiscauxfunc import *
+from bfrelections import *
 
 #/-----INITIALIZATION-----\
 #.env
@@ -45,8 +47,6 @@ b = discord.opus.load_opus(a)
 c = discord.opus.is_loaded()
 if not(discord.opus.is_loaded()):
 	print(f'Discord Opus error')
-
-
 
 
 #Commands
@@ -80,6 +80,15 @@ async def unannounce(ctx, pinged_role_to_unannounce):
 	await ctx.send(f"{role_to_unannounce} ha sido eliminado de la lista de roles anunciados")
 	initialize_roles_to_announce()
 
+def restart_program():
+    python = sys.executable
+    os.execl(python, python, * sys.argv)
+
+@commands.has_permissions(administrator=True)
+@discordBot.command(name="restart", hidden=True)
+async def restartBot(ctx):
+	await ctx.send("Restarting...")
+	restart_program()
 
 
 async def sendDM(member, content):

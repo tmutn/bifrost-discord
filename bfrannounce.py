@@ -10,10 +10,9 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 ANNOUNCERMP3PATH = os.getenv('ANNOUNCER_MP3_PATH')
 ID_ROLES_TO_BE_ANNOUNCED = []
 
-# ID_ROLES_TO_BE_ANNOUNCED = list(map(int, os.getenv('ID_ROLES_TO_BE_ANNOUNCED').split(",")))
 def initialize_roles_to_announce():
 	global ID_ROLES_TO_BE_ANNOUNCED
-	query_roles_to_announce = executeSqlite(f"SELECT * from announceable_role")
+	query_roles_to_announce = execute_sqlite(f"SELECT * from announceable_role")
 	announceable_roles = []
 	if query_roles_to_announce:
 		for role in query_roles_to_announce:
