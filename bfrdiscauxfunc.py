@@ -1,4 +1,3 @@
-
 #Check if the user is administrator on the server
 def isAdministrator(member):
 	if member.guild_permissions.administrator:

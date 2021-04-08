@@ -79,12 +79,11 @@ def highest_announceable_role_of_user(member, guild):
 
 #Obtain all the roles that belong to this guild and should be announced
 def get_announceable_roles(discordGuild):
-	print(ID_ROLES_TO_BE_ANNOUNCED)
 	announceable_roles = []
-	for guild in discordGuild:
-		for role in guild.roles:
-			if role.id in ID_ROLES_TO_BE_ANNOUNCED:
-				announceable_roles.append(role.id)
+	# for guild in discordGuild:
+	for role in discordGuild.roles:
+		if role.id in ID_ROLES_TO_BE_ANNOUNCED:
+			announceable_roles.append(role.id)
 	return announceable_roles
 
 #Early disconnect a voice object

@@ -14,7 +14,6 @@ import sys
 import sqlite3
 from datetime import timedelta
 from discord.ext import commands
-from discord.ext.commands import Bot
 from dotenv import load_dotenv
 from sqlite3 import Error
 from os import system, name
@@ -90,6 +89,56 @@ async def restartBot(ctx):
 	await ctx.send("Restarting...")
 	restart_program()
 
+@commands.has_permissions(administrator=True)
+@discordBot.command(name="elecciones", hidden=True)
+async def startElections(ctx, arrobaCongressman, arrobaFirstInspector, arrobaInspector, arrobaTopo):
+	if are_elections_running(ctx.guild.id):
+		await sendDM(ctx.author, f"Ya una elección en curso")
+		return
+	else:
+		categoryElectables = await ctx.guild.create_category(name='╠═ELECCIONES CONGRESSMAN═╣')
+		categoryBooths = await ctx.guild.create_category(name='╠════ CUARTO OSCURO ════╣')
+	#CREAR RECORD DE ELECCIONES
+	try:
+		condb = sqlite3.connect('bifrost.db')
+		cursorObj = condb.cursor()
+		insert_election = (ctx.guild.id, categoryElectables.id, categoryBooths.id)
+		cursorObj.execute("INSERT INTO election VALUES(?,CURRENT_TIMESTAMP,1,?,?,1)", insert_election)
+		condb.commit()
+	except Error as err:
+		print(err)
+	finally:
+		condb.close()
+
+	#HARDCODED, CANTIDAD DE COSOS POR CONGRESSMAN Y OBLIGATORIEDAD
+	#role = (amount , Is Mandatory)
+	# inspector_per_congressman = [2,'True']
+	# firstInspector_per_congressman = [1,'False']
+	#CREAR RECORD DE IDS PARA CONGRESSMAN FIRST E INSPECTOR ASOCIADOS FK A TABLA ELECCIONES
+	congressman = getPingedRole(ctx, arrobaCongressman)
+	firstInspector = getPingedRole(ctx, arrobaFirstInspector)
+	inspector = getPingedRole(ctx, arrobaInspector)
+	topo = getPingedRole(ctx, arrobaTopo)
+	insert_election_role = []
+	insert_election_role.append((congressman.id, ctx.guild.id,congressman.name, 0, False, False))
+	insert_election_role.append((firstInspector.id, ctx.guild.id,firstInspector.name, 1, False, False))
+	insert_election_role.append((inspector.id, ctx.guild.id,inspector.name, 2, True, False))
+	insert_election_role.append((topo.id, ctx.guild.id,topo.name, 0, False, True))
+
+	for tupla in insert_election_role:
+		try:
+			condb = sqlite3.connect('bifrost.db')
+			cursorObj = condb.cursor()
+			cursorObj.execute("INSERT INTO election_role VALUES(?,?,?,?,?,?)", tupla)
+			condb.commit()
+		except Error as err:
+			print(err)
+		finally:
+			condb.close()
+	message = electionInformation(ctx)
+	#await dmEveryone(ctx,message, discordBot)
+
+
 
 async def sendDM(member, content):
 	await member.send(content)
@@ -99,8 +148,8 @@ async def displayLists(channel):
 	congressmenId = getAllElectableCongressmanIds(channel)
 	electableOptionsList = []
 	for congressmanId in congressmenId:
-		electionRoles = getElectionRoles(channel)
-		ecd = getElectableCongressmanData(congressmanId, channel)
+		electionRoles = get_election_roles(channel.guild.id)
+		ecd = get_electable_congressman_data(congressmanId, channel)
 		lmd = getListMembersData(congressmanId)
 		inspectorNames = []
 		inspectorNamesString = ''
@@ -139,7 +188,7 @@ async def displayLists(channel):
 
 #TEXT FUNCTIONS BIFROST-DEMOCRATIOA
 def electionInformation(ctx):
-	electionRoles = getElectionRoles(ctx)
+	electionRoles = get_election_roles(ctx.guild.id)
 	congressman = electionRoles[0]
 	firstInspector = electionRoles[1]
 	inspector = electionRoles[2] 
@@ -203,42 +252,6 @@ Cuando se active el escrutinio, Bifrost hará una ceremonia en un canal de voz d
 
 
 #QUERYs BIFROST-DEMOCRATIA
-def getGuildElectablesCategory(ctx):
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
-		cursorObj.execute(f"SELECT category_electables_id FROM election WHERE election_id = {ctx.guild.id}")
-		condb.commit()
-		rows = cursorObj.fetchall()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
-	if rows:
-		category_id = rows[0][0]
-		category =  discordBot.get_channel(category_id)
-		return category
-	else:
-		return None
-
-def getCandidateCampaignChannel(memberId):
-	rows = None
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
-		cursorObj.execute(f"SELECT text_channel_id FROM electable_congressman WHERE member_id = {memberId}")
-		condb.commit()
-		rows = cursorObj.fetchall()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
-	if rows:
-		channelId = rows[0][0]
-		campaignChannel =  discordBot.get_channel(channelId)
-		return campaignChannel
-	else:
-		return None
 
 def isThisACampaignChannel(ctx):
 	rows = []
@@ -287,42 +300,9 @@ def getCastVoteRole(ctx):
 
 
 
-def getElectableCongressmanData(member_id, ctx):
-	rows = []
-	result = []
-	data = {}
 
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
 
-		cursorObj.execute(f"SELECT * FROM electable_congressman WHERE member_id = {member_id} and guild_id = {ctx.guild.id}")
-		condb.commit()
-		rows = cursorObj.fetchall()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
-	
-	if rows:
-		for row in rows:
-			result = row
-		data = {
-			'member_id' : result[0],
-			'discord_username' : result[1],
-			'text_channel_id' : result[2],
-			'guild_id' : result[3],
-			'list_id' : result[4],
-			'list_name' : result[5],
-			'list_image' : result[6],
-			'list_color' : result[7],
-			'date_joined' : result[8]
-		}
-		return data
-	else:
-		return None
-
-#CONTINUE podría mergearse con la de getElectableCongressmanData utilizando parámetros opcionales
+#CONTINUE podría mergearse con la de get_electable_congressman_data utilizando parámetros opcionales
 def getAllElectableCongressmanIds(ctx):
 	rows = []
 	result = []
@@ -466,6 +446,7 @@ def isVoterInsideHisBooth(member_id, channel_id, guild_id):
 
 
 async def postulateCongressman(ctx, channel, listId, listName):
+	print("\n\nATTEMPTING TO POSTULATE CONGRESSMAN\n\n")
 	error = None
 	try:
 		condb = sqlite3.connect('bifrost.db')
@@ -702,113 +683,6 @@ def isVoterAlready(ctx):
 	else:
 		return None
 
-def areElectionsRunning(guild_id):
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
-		cursorObj.execute(f"SELECT election_id from election WHERE election_id = {guild_id}")
-		condb.commit()
-		rows = cursorObj.fetchall()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
-	if rows:
-		result = rows[0][0]
-		return result
-	else:
-		return None
-
-# def getElectables(ctx):
-# 	try:
-# 		condb = sqlite3.connect('bifrost.db')
-# 		cursorObj = condb.cursor()
-# 		cursorObj.execute(f"SELECT member_id from electable_congressman WHERE guild_id = {ctx.guild.id}")
-# 		condb.commit()
-# 		rows = cursorObj.fetchall()
-# 	except Error as err:
-# 		print(err)
-# 	finally:
-# 		condb.close()
-# 	if rows:
-# 		i = 0
-# 		candidatos = {}
-# 		for row in rows:
-# 			member_id = row[0]
-# 			member = ctx.guild.get_member(member_id)
-# 			candidatos[i] = member
-# 			i+=1
-# 		return candidatos
-# 	else:
-# 		return None
-
-def getElectionRoles(ctx):
-	rows = []
-	electionRoles = []
-	try:
-		condb = sqlite3.connect('bifrost.db')
-		cursorObj = condb.cursor()
-		cursorObj.execute(f"SELECT * from election_role WHERE election_id = {ctx.guild.id}")
-		condb.commit()
-		rows = cursorObj.fetchall()
-	except Error as err:
-		print(err)
-	finally:
-		condb.close()
-	if rows:
-		for row in rows:
-			electionRoles.append(row)
-	else:
-		return None
-	#HARDCODED
-	congressman = {}
-	firstInspector = {}
-	inspector = {}		
-	topo = {}
-	for role in electionRoles:
-		if "Congressman" in role:
-			congressman = {
-				"role_id" : role[0],
-				"election_role_id" : role[1],
-				"role_name" : role[2],
-				"amount_per_congressman" : role[3],
-				"is_mandatory" : role[4],
-				"casts_vote" : role[5]
-			}
-		if "First Inspector" in role:
-			firstInspector = {
-				"role_id" : role[0],
-				"election_role_id" : role[1],
-				"role_name" : role[2],
-				"amount_per_congressman" : role[3],
-				"is_mandatory" : role[4],
-				"casts_vote" : role[5]
-			}
-		if "Inspector" in role:
-			inspector = {
-				"role_id" : role[0],
-				"election_role_id" : role[1],
-				"role_name" : role[2],
-				"amount_per_congressman" : role[3],
-				"is_mandatory" : role[4],
-				"casts_vote" : role[5]
-			}
-		if "Topo" in role:
-			topo = {
-				"role_id" : role[0],
-				"election_role_id" : role[1],
-				"role_name" : role[2],
-				"amount_per_congressman" : role[3],
-				"is_mandatory" : role[4],
-				"casts_vote" : role[5]
-			}
-	result = []
-	result.append(congressman)
-	result.append(firstInspector)
-	result.append(inspector)
-	result.append(topo)
-	return result
-
 
 #CONTINUE
 async def endPostulations(ctx):
@@ -1001,7 +875,7 @@ async def on_raw_reaction_add(payload):
 @discordBot.event
 async def on_voice_state_update(member, before, after):
 	if before.channel != after.channel and member != discordBot.user:
-		announcement_string = create_announcement_string(member, discordBot.guilds)
+		announcement_string = create_announcement_string(member, member.guild)
 		if announcement_string:
 			filenameWithPath = polly_synthesize(announcement_string)
 			if after.channel:
@@ -1035,70 +909,16 @@ async def on_member_join(member):
 	# await discordBot.process_commands(message)
 
 
-@discordBot.command(name="elecciones", hidden=True)
-async def startElections(ctx, arrobaCongressman, arrobaFirstInspector, arrobaInspector, arrobaTopo):
-	if isAdministrator(ctx.message.author):
-		if areElectionsRunning(ctx.guild.id):
-			await sendDM(ctx.author, f"Ya una elección en curso")
-			return
-		else:
-			categoryElectables = await ctx.guild.create_category(name='╠═ELECCIONES CONGRESSMAN═╣')
-			categoryBooths = await ctx.guild.create_category(name='╠════ CUARTO OSCURO ════╣')
-		#CREAR RECORD DE ELECCIONES
-		try:
-			condb = sqlite3.connect('bifrost.db')
-			cursorObj = condb.cursor()
-			insert_election = (ctx.guild.id, categoryElectables.id, categoryBooths.id)
-			cursorObj.execute("INSERT INTO election VALUES(?,CURRENT_TIMESTAMP,1,?,?,1)", insert_election)
-			condb.commit()
-		except Error as err:
-			print(err)
-		finally:
-			condb.close()
 
-		#HARDCODED, CANTIDAD DE COSOS POR CONGRESSMAN Y OBLIGATORIEDAD
-		#role = (amount , Is Mandatory)
-		# inspector_per_congressman = [2,'True']
-		# firstInspector_per_congressman = [1,'False']
-		#CREAR RECORD DE IDS PARA CONGRESSMAN FIRST E INSPECTOR ASOCIADOS FK A TABLA ELECCIONES
-		congressman = getPingedRole(ctx, arrobaCongressman)
-		firstInspector = getPingedRole(ctx, arrobaFirstInspector)
-		inspector = getPingedRole(ctx, arrobaInspector)
-		topo = getPingedRole(ctx, arrobaTopo)
-		insert_election_role = []
-		insert_election_role.append((congressman.id, ctx.guild.id,congressman.name, 0, False, False))
-		insert_election_role.append((firstInspector.id, ctx.guild.id,firstInspector.name, 1, False, False))
-		insert_election_role.append((inspector.id, ctx.guild.id,inspector.name, 2, True, False))
-		insert_election_role.append((topo.id, ctx.guild.id,topo.name, 0, False, True))
-
-		for tupla in insert_election_role:
-			try:
-				condb = sqlite3.connect('bifrost.db')
-				cursorObj = condb.cursor()
-				cursorObj.execute("INSERT INTO election_role VALUES(?,?,?,?,?,?)", tupla)
-				condb.commit()
-			except Error as err:
-				print(err)
-			finally:
-				condb.close()
-
-		message = electionInformation(ctx)
-
-		await dmEveryone(ctx,message, discordBot)
-	else:
-		print(f"{ctx.message.author} is NOT ADMINISTRATOR. Warning issued.")
-
-
+@commands.has_permissions(administrator=True)
 @discordBot.command(name="cerrarListas", hidden=True)
 async def endPostulationsCommand(ctx):
-	if isAdministrator(ctx.message.author):
-		await endPostulations(ctx)
-	else:
-		print(f"{ctx.message.author} is NOT ADMINISTRATOR. Warning issued.")
+	await endPostulations(ctx)
 
+#CONTINUE THISONE
 @discordBot.command(name="postularme", brief='Postularse a Congressman')
 async def becomeElectable(ctx, listId, *listName):
-	if not areElectionsRunning(ctx.guild.id):
+	if not are_elections_running(ctx.guild.id):
 		await sendDM(ctx.author, f"No hay una elección en curso")
 		return
 	if not memberCastsVote(ctx, ctx.author.id):
@@ -1118,7 +938,7 @@ async def becomeElectable(ctx, listId, *listName):
 		for palabra in listName:
 			nombreDeLista+=' '+palabra
 	nombreDeLista = nombreDeLista.strip()
-	campaignChannelCategory = getGuildElectablesCategory(ctx)
+	campaignChannelCategory = get_guild_electables_category(ctx.guild.id)
 	#Continue
 	try:
 		listId = int(listId)
@@ -1151,6 +971,7 @@ async def becomeElectable(ctx, listId, *listName):
 		await channel.send(f'```Agregar color de lista (código hexadecimal sin el #): \n>agregarColorLista F2A23B```')
 	else:
 		await sendDM(ctx.author, f"No hay elecciones en progreso")
+	#discord.errors.HTTPException: 503 Service Unavailable (error code: 0): upstream connect error or disconnect/reset before headers. reset reason: connection termination
 
 
 @discordBot.command(name="agregarInspector", brief='Agregar inspector a mi lista')
@@ -1159,7 +980,7 @@ async def addInspector(ctx, inspector):
 	inspectorRole = getInspectorRole(ctx)
 	name_of_role = "Inspector"
 	#_____________________________________
-	campaignChannel = getCandidateCampaignChannel(ctx.author.id)
+	campaignChannel = get_candidate_campaign_channel(ctx.author.id)
 	if not isMemberOwnerOfElectionChannel(ctx):
 		await sendDM(ctx.author, "Este comando solo puede ser utilizado en tu canal de campaña")
 		return 
@@ -1179,7 +1000,7 @@ async def addInspector(ctx, inspector):
 	if postulatedInspector.id == ctx.author.id:
 		await sendDM(ctx.author, f"No te podés enviar una oferta a vos mismo para un cargo en tu campaña, otario")
 		return
-	if getCandidateCampaignChannel(postulatedInspector.id):
+	if get_candidate_campaign_channel(postulatedInspector.id):
 		await sendDM(ctx.author, f"A {postulatedInspector.mention} no se le puede enviar una oferta como {name_of_role} de tu lista. Es un candidato a Congressman")
 		return	
 	if hasOfferInThisList(ctx):
@@ -1198,7 +1019,7 @@ async def addInspector(ctx, inspector):
 	inspectorRole = getFirstInspectorRole(ctx)
 	name_of_role = "First Inspector"
 	#_____________________________________
-	campaignChannel = getCandidateCampaignChannel(ctx.author.id)
+	campaignChannel = get_candidate_campaign_channel(ctx.author.id)
 	if not isMemberOwnerOfElectionChannel(ctx):
 		await sendDM(ctx.author, "Este comando solo puede ser utilizado en tu canal de campaña")
 		return 
@@ -1218,7 +1039,7 @@ async def addInspector(ctx, inspector):
 	if postulatedInspector.id == ctx.author.id:
 		await sendDM(ctx.author, f"No te podés enviar una oferta a vos mismo para un cargo en tu campaña, otario")
 		return
-	if getCandidateCampaignChannel(postulatedInspector.id):
+	if get_candidate_campaign_channel(postulatedInspector.id):
 		await sendDM(ctx.author, f"A {postulatedInspector.mention} no se le puede enviar una oferta como {name_of_role} de tu lista. Es un candidato a Congressman")
 		return	
 	if hasOfferInThisList(ctx):
@@ -1300,7 +1121,7 @@ async def confirmPostulationOffer(ctx):
 	if not isThisACampaignChannel(ctx):
 		await sendDM(ctx.author, "Este comando solo puede ser utilizado en un canal de campaña en el cual tengas una oferta")
 		return
-	if getElectableCongressmanData(ctx.author.id, ctx):
+	if get_electable_congressman_data(ctx.author.id, ctx):
 		await sendDM(ctx.author, "No podés aceptar una posición en otra lista, sos candidato a Congresman")
 		return
 	confirmedCandidateTuple = hasOfferInThisList(ctx)
@@ -1329,8 +1150,8 @@ async def listStatus(ctx):
 	if not isMemberOwnerOfElectionChannel(ctx):
 		await sendDM(ctx.author, "Este comando solo puede ser utilizado en tu canal de campaña")
 		return 
-	electionRoles = getElectionRoles(ctx)
-	ecd = getElectableCongressmanData(ctx.author.id, ctx)
+	electionRoles = get_election_roles(ctx.guild.id)
+	ecd = get_electable_congressman_data(ctx.author.id, ctx)
 	lmd = getListMembersData(ctx.author.id)
 	inspectorNames = []
 	inspectorNamesString = ''
@@ -1415,13 +1236,14 @@ async def addListColor(ctx, listColor):
 
 @discordBot.command(name="ping", brief='TEST FUNCTION')
 async def testFunction(ctx):
-	print(ctx.guild.roles)
+	print("rskdpill")
+
 
 
 
 @discordBot.command(name="quieroVotar", hidden=True)
 async def wantToVote(ctx):
-	if not areElectionsRunning(ctx.guild.id):
+	if not are_elections_running(ctx.guild.id):
 		await ctx.author.send("No hay elecciones en curso")
 		return
 	if not memberCastsVote(ctx, ctx.author.id):
@@ -1452,7 +1274,7 @@ async def on_raw_reaction_add(payload):
 	if payload.emoji.name != '👍':
 		print("solo pulgarcito arriba vota")
 		return
-	if not areElectionsRunning(payload.guild_id):
+	if not are_elections_running(payload.guild_id):
 		await sendDM(ctx.author, f"No hay una elección en curso")
 		return
 	if not isVoterInsideHisBooth(payload.user_id, payload.channel_id, payload.guild_id):
@@ -1477,12 +1299,10 @@ async def on_raw_reaction_add(payload):
 		if votosEmitidos:
 			await currentChannel.send(f"Votaste al candidato a Congressman {payload.member.guild.get_member(votedCongressmanId)}\n```Votos restantes = {VOTES_PER_ELECTOR_ROLE - votosEmitidos}```")
 
-
+@commands.has_permissions(administrator=True)
 @discordBot.command(name="finalizarElecciones")
 async def endElections(ctx):
-	if not isAdministrator(ctx.message.author):
-		return
-	if not areElectionsRunning:
+	if not are_elections_running:
 		return
 	if not arePostulationsRunning:
 		return
