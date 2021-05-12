@@ -14,11 +14,14 @@ import sys
 import sqlite3
 from datetime import timedelta
 from discord.ext import commands
+from discord_slash import SlashCommand, SlashContext
 from dotenv import load_dotenv
 from sqlite3 import Error
 from os import system, name
 
 # bifrost modules
+
+import bfrannounce
 from bfrannounce import *
 from bfrmessages import *
 from bfrauxfunc import *
@@ -39,6 +42,8 @@ VOTES_PER_ELECTOR_ROLE = 2
 intents = discord.Intents.default()
 intents.members = True  # Subscribe to the privileged members intent.
 discordBot = commands.Bot(command_prefix='>', intents=intents)
+slash = SlashCommand(discordBot, sync_commands=True)
+
 
 #load opus lib for audio playing
 a = ctypes.util.find_library('opus')
@@ -48,43 +53,87 @@ if not(discord.opus.is_loaded()):
 	print(f'Discord Opus error')
 
 
+#HARDCODED
+guild_ids = []
+
+#Bifrost Start
+@discordBot.event
+async def on_ready():
+	global guild_ids
+	list_of_announced_roles = []
+	print(f"{discordBot.user} is connected to the following guilds:")
+	for guild in discordBot.guilds:
+		list_of_announced_roles.append(guild.id)
+		print(
+			f'{guild.name}(id: {guild.id})'
+		)
+		guild_ids = list_of_announced_roles
+
+
+
 #Commands
 #EXEMPLARY
 @commands.guild_only()
 @commands.has_permissions(administrator=True)
-@discordBot.command(name="announce", hidden=True)
-async def announce(ctx, pinged_role_to_announce):
-	role_to_announce = getPingedRole(ctx, pinged_role_to_announce)
+@slash.slash(name="announce", description="Agrega un rol para ser anunciado por Bifrost. Usa @role para seleccionarlo", guild_ids=guild_ids)
+async def announce(ctx, role_to_announce):
+	role_to_announce = getPingedRole(ctx, role_to_announce)
 	if not role_to_announce:
-		await ctx.send(f"Error: '{pinged_role_to_announce}' es un rol inválido")
+		await ctx.send(f"Error: '{role_to_announce}' es un rol inválido")
 		return
 	query_result = execute_sqlite(f"INSERT INTO announceable_role VALUES({ctx.guild.id},{role_to_announce.id})")
 	if "UNIQUE constraint failed" in str(query_result):
 		await ctx.send(f"Error: {role_to_announce} ya estaba en la lista de roles anunciados")
 		return
 	await ctx.send(f"{role_to_announce} ha sido agregado a la lista de roles anunciados")
-	initialize_roles_to_announce()
 
 @commands.guild_only()
 @commands.has_permissions(administrator=True)
-@discordBot.command(name="unannounce", hidden=True)
-async def unannounce(ctx, pinged_role_to_unannounce):
-	role_to_unannounce = getPingedRole(ctx, pinged_role_to_unannounce)
+@slash.slash(name="unannounce", description="Hacer que un rol deje de ser anunciado por Bifrost. Usa @role para seleccionarlo", guild_ids=guild_ids)
+async def unannounce(ctx, role_to_unannounce):
+	role_to_unannounce = getPingedRole(ctx, role_to_unannounce)
 	if not role_to_unannounce:
-		await ctx.send(f"Error: '{pinged_role_to_unannounce}' es un rol inválido")
+		await ctx.send(f"Error: '{role_to_unannounce}' es un rol inválido")
 		return
 	if not execute_sqlite(f"DELETE FROM announceable_role WHERE role_id = {role_to_unannounce.id}"):
 		await ctx.send(f"Error: {role_to_unannounce} no se puede eliminar por que no está en la lista")
 		return
 	await ctx.send(f"{role_to_unannounce} ha sido eliminado de la lista de roles anunciados")
-	initialize_roles_to_announce()
+
+
+#Si se tuviera que sacar de algún lado el ID se tendría que sacar de el que tenga cast_vote
+topo_role_id_testing = 685940260672503883
+topo_role_id_posta = 685940260672503883
+
+@commands.guild_only()
+@commands.has_any_role(*[announceable_dict['guild_id'] for announceable_dict in execute_sqlite("SELECT * from announceable_role")])
+@slash.slash(name="updraft", description="Otorga el rango Topo a un miembro del servidor. Usa @miembro para seleccionarlo", guild_ids=guild_ids)
+async def updraft(ctx: SlashContext, promoted_member):
+	issuer_role = highest_announceable_role_of_user(ctx.author, ctx.guild)
+	issuer_name = ctx.author.name
+	updrafted_member = getPingedMember(ctx, promoted_member)
+	updrafted_role = ctx.guild.get_role(topo_role_id_testing)
+	await updrafted_member.add_roles(updrafted_role)
+	await ctx.send(f'''{issuer_role} {issuer_name} le ha dado el rango {ctx.guild.get_role(topo_role_id_testing)} a {updrafted_member.name}''')
+
+@commands.guild_only()
+@commands.has_any_role(*[announceable_dict['guild_id'] for announceable_dict in execute_sqlite("SELECT * from announceable_role")])
+@slash.slash(name="demote", description="Despoja a un Topo de su rango. Usa @miembro para seleccionarlo", guild_ids=guild_ids)
+async def demote(ctx, demoted_member):
+	issuer_role = highest_announceable_role_of_user(ctx.author, ctx.guild)
+	issuer_name = ctx.author.name
+	demoted_member = getPingedMember(ctx, demoted_member)
+	demoted_role = ctx.guild.get_role(topo_role_id_testing)
+	await demoted_member.remove_roles(demoted_role)
+	await ctx.send(f'''{issuer_role} {issuer_name} le sacó el rango {ctx.guild.get_role(topo_role_id_testing)} a {demoted_member.name}''')
+
+
 
 def restart_program():
     python = sys.executable
     os.execl(python, python, * sys.argv)
-
 @commands.has_permissions(administrator=True)
-@discordBot.command(name="restart", hidden=True)
+@slash.slash(name="restart", description="Reinicia Bifrost", guild_ids=guild_ids)
 async def restartBot(ctx):
 	await ctx.send("Restarting...")
 	restart_program()
@@ -843,13 +892,7 @@ def countVotesAndSort(ctx):
 
 
 #/-----Events-----\
-@discordBot.event
-async def on_ready():
-	print(f"{discordBot.user} is connected to the following guilds:")
-	for guild in discordBot.guilds:
-		print(
-			f'{guild.name}(id: {guild.id})'
-		)
+
 
 
 #Guachin sacá ya el me divierte
@@ -874,6 +917,7 @@ async def on_raw_reaction_add(payload):
 
 @discordBot.event
 async def on_voice_state_update(member, before, after):
+	initialize_roles_to_announce()
 	if before.channel != after.channel and member != discordBot.user:
 		announcement_string = create_announcement_string(member, member.guild)
 		if announcement_string:
@@ -1439,4 +1483,5 @@ def clear():
 		_ = system('clear')
 clear()
 initialize_roles_to_announce()
+
 discordBot.run(TOKEN)

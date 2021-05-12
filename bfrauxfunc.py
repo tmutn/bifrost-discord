@@ -26,7 +26,7 @@ def execute_sqlite(script):
 				i=0
 				for key in data:
 					data[key] = row[i]
-					print(f"{key} = {row[i]}")
+					# print(f"{key} = {row[i]}")
 					i+=1					
 				data_array.append(data.copy())
 		if data_array:
