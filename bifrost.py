@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 from sqlite3 import Error
 from os import system, name
 
+from pycoingecko import CoinGeckoAPI
+
 # bifrost modules
 
 import bfrannounce
@@ -52,9 +54,28 @@ c = discord.opus.is_loaded()
 if not(discord.opus.is_loaded()):
 	print(f'Discord Opus error')
 
+#coingecko
+#HARDCODED
+cg = CoinGeckoAPI()
+async def update_cryptodata():
+	while True:
+		crypto_data = cg.get_price(ids='bitcoin,ethereum,cardano,pancakeswap-token', vs_currencies='usd', include_24hr_change='true')
+		btc_channel_string = f"BTC ${crypto_data['bitcoin']['usd']} {round(crypto_data['bitcoin']['usd_24h_change'],2)}%"
+		eth_channel_string = f"ETH ${crypto_data['ethereum']['usd']} {round(crypto_data['ethereum']['usd_24h_change'],2)}%"
+		ada_channel_string = f"ADA ${crypto_data['cardano']['usd']} {round(crypto_data['cardano']['usd_24h_change'],2)}%"
+		cake_channel_string = f"CAKE ${crypto_data['pancakeswap-token']['usd']} {round(crypto_data['pancakeswap-token']['usd_24h_change'],2)}%"
+		channel_btc = discordBot.get_channel(850438011623964702)
+		channel_eth = discordBot.get_channel(850438095216050186)
+		channel_ada = discordBot.get_channel(850438105781108756)
+		channel_cake = discordBot.get_channel(850438115437182986)
+		await channel_btc.edit(name=btc_channel_string)
+		await channel_eth.edit(name=eth_channel_string)		
+		await channel_ada.edit(name=ada_channel_string)	
+		await channel_cake.edit(name=cake_channel_string)	
+		await asyncio.sleep(301)
 
 #HARDCODED
-guild_ids = []
+guild_ids = [233391226731102208]
 
 #Bifrost Start
 @discordBot.event
@@ -68,6 +89,9 @@ async def on_ready():
 			f'{guild.name}(id: {guild.id})'
 		)
 		guild_ids = list_of_announced_roles
+
+	#HARDCODED
+	await update_cryptodata()
 
 
 
@@ -102,6 +126,7 @@ async def unannounce(ctx, role_to_unannounce):
 
 
 #Si se tuviera que sacar de algún lado el ID se tendría que sacar de el que tenga cast_vote
+#Hardcoded
 topo_role_id_testing = 685940260672503883
 topo_role_id_posta = 685940260672503883
 
@@ -130,8 +155,8 @@ async def demote(ctx, demoted_member):
 
 
 def restart_program():
-    python = sys.executable
-    os.execl(python, python, * sys.argv)
+	python = sys.executable
+	os.execl(python, python, * sys.argv)
 @commands.has_permissions(administrator=True)
 @slash.slash(name="restart", description="Reinicia Bifrost", guild_ids=guild_ids)
 async def restartBot(ctx):
