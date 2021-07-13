@@ -59,19 +59,19 @@ if not(discord.opus.is_loaded()):
 cg = CoinGeckoAPI()
 async def update_cryptodata():
 	while True:
-		crypto_data = cg.get_price(ids='bitcoin,ethereum,cardano,pancakeswap-token', vs_currencies='usd', include_24hr_change='true')
+		crypto_data = cg.get_price(ids='bitcoin,ethereum,cardano,smooth-love-potion', vs_currencies='usd', include_24hr_change='true')
 		btc_channel_string = f"BTC ${crypto_data['bitcoin']['usd']} {round(crypto_data['bitcoin']['usd_24h_change'],2)}%"
 		eth_channel_string = f"ETH ${crypto_data['ethereum']['usd']} {round(crypto_data['ethereum']['usd_24h_change'],2)}%"
 		ada_channel_string = f"ADA ${crypto_data['cardano']['usd']} {round(crypto_data['cardano']['usd_24h_change'],2)}%"
-		cake_channel_string = f"CAKE ${crypto_data['pancakeswap-token']['usd']} {round(crypto_data['pancakeswap-token']['usd_24h_change'],2)}%"
+		slp_channel_string = f"SLP ${crypto_data['smooth-love-potion']['usd']} {round(crypto_data['smooth-love-potion']['usd_24h_change'],2)}%"
 		channel_btc = discordBot.get_channel(850438011623964702)
 		channel_eth = discordBot.get_channel(850438095216050186)
 		channel_ada = discordBot.get_channel(850438105781108756)
-		channel_cake = discordBot.get_channel(850438115437182986)
+		channel_slp = discordBot.get_channel(850438115437182986)
 		await channel_btc.edit(name=btc_channel_string)
 		await channel_eth.edit(name=eth_channel_string)		
 		await channel_ada.edit(name=ada_channel_string)	
-		await channel_cake.edit(name=cake_channel_string)	
+		await channel_slp.edit(name=slp_channel_string)	
 		await asyncio.sleep(301)
 
 #HARDCODED
